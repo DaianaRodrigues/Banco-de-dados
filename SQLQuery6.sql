@@ -80,3 +80,132 @@ SELECT AVG(salario) AS media_salarial FROM funcionario;
 SELECT departamento_id, MIN(salario) AS menor_salario, MAX(salario) AS maior_salario FROM funcionario GROUP BY departamento_id;
 
 SELECT sexo, AVG(salario) AS media_salario, COUNT(id) AS quantidade FROM funcionario GROUP BY sexo;
+
+-- QUANTAS PESSOAS TEM EM CADA DEPARTAMENTO?
+SELECT departamento_id, COUNT(id) AS num_funcionario FROM funcionario
+GROUP BY departamento_id;
+
+--QUAL A SOMA DE SALARIO POR DEPARTAMENTO?
+SELECT departamento_id, SUM(salario) AS soma_salario, COUNT(id) AS numero_pessoas
+FROM funcionario
+GROUP BY departamento_id;
+
+-- Quantos homens tem por departamento e ganham mais de 3800
+SELECT departamento_id, COUNT(id) AS num_funcionarios
+FROM funcionario
+WHERE sexo='M' AND salario>3800
+GROUP BY departamento_id;
+
+SELECT departamento_id, MAX(salario) AS max_salario
+FROM funcionario
+GROUP BY departamento_id
+HAVING MAX(salario) > 4200;
+
+--QUANTOS HOMENS TEM POR DEPARTAMENTO, GANHAM MAIS DE 3800 DESCONSIDERANDO 
+--OS DEPARTAMENTOS QUE TENHAM APENAS UM HOMEM
+SELECT departamento_id, COUNT(id) AS num_funcioarios 
+FROM funcionario
+WHERE sexo  = 'M' AND salario > 3800
+GROUP BY departamento_id
+HAVING COUNT(id) > 1;
+
+--QUANTAS MULHERES QUE TEM EMAIL @GMAIL.COM TEM MEDIA DE SALARIO MAIOR QUE 4000 POR DEPARTAMENTO
+SELECT departamento_id, COUNT(id) AS quantidade_mulheres, AVG(salario) AS media_salario
+FROM funcionario
+WHERE sexo = 'F' AND email LIKE '%@gmail.com'
+GROUP BY departamento_id
+HAVING AVG(salario) > 4000;
+
+-- Crie uma View que traga a soma salarial,
+--o maior salario e a quantidade de funcionarios por nome do departamento
+--Contudo, apenas dos departamentos que a soma salarial 
+
+CREATE VIEW view_soma_salarial AS(
+	SELECT 
+	d.departamento, 
+	MAX(f.salario) AS max_salario,
+	SUM(f.salario) AS soma_salario,
+	COUNT(f.id) AS contagem
+	FROM funcionario AS F
+	INNER JOIN departamentos AS d
+	ON d.id = f.departamento_id
+	GROUP BY d.departamento
+	HAVING SUM(f.salario) > 13000
+);
+
+CREATE VIEW view_homem_mulher_media_salario AS (
+	SELECT
+	d.departamento,
+	f.sexo,
+	AVG(f.salario) AS media_salario
+	FROM funcionario AS f
+	INNER JOIN departamentos AS d
+	ON f.departamento_id = d.id
+	WHERE(f.sexo = 'M' AND MONTH(f.data_nascimento) = '05') or (f.sexo = 'F' AND MONTH(f.data_nascimento) = '07')
+	GROUP BY d.departamento, f.sexo
+);
+
+DROP VIEW view_homem_mulher_media_salario;
+
+SELECT * FROM view_homem_mulher_media_salario;
+
+--Trazer o menor e o maior preço de cada categoria
+--(alguns produtos podem ter preçoes iguais) e a descrição de cada produto
+
+WITH base_table AS (
+SELECT
+	id_categoria,
+	SUM(preco) AS soma_preco,
+	AVG(preco) AS media_preco,
+	MIN(preco) AS min_preco,
+	MAX(preco) AS max_preco
+FROM produtos
+GROUP BY id_categoria)
+SELECT 
+	bt.id_categoria,
+	p.descricao,
+	p.preco
+	FROM base_table AS bt
+	INNER JOIN produtos p
+	ON bt.id_categoria = p.id_categoria
+	AND (bt.min_preco = p.preco OR bt.max_preco = p.preco);
+
+--Trazer o menor salário de cada departamento e o nome do 
+--funcionario que recebe esse valor. Trazer o nome do departamento
+WITH base_table AS (
+	SELECT 
+		d.id,
+		d.departamento,
+		MIN(salario) AS menor_salario
+	FROM departamentos d
+	INNER JOIN funcionario f
+	ON f.departamento_id = d.id
+	GROUP BY d.id, d.departamento
+)
+
+SELECT
+	bt.departamento,
+	bt.menor_salario
+FROM funcionario f
+INNER JOIN base_table bt
+ON bt.id = f.departamento_id 
+AND bt.menor_salario = f.salario
+
+
+SELECT 
+departamento_id,
+nome,
+YEAR(data_nascimento) AS ano_nascimento,
+FIRST_VALUE(YEAR(data_nascimento)) OVER(PARTITION BY departamento_id ORDER BY YEAR(data_nascimento)) AS menor_ano
+FROM funcionario
+ORDER BY departamento_id
+
+SELECT 
+	id_categoria,
+	preco,
+	LAG(preco) OVER(PARTITION BY id_categoria ORDER BY preco),
+FROM produtos
+	ORDER BY id_categoria
+	ORDER BY produtos
+
+	
